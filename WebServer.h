@@ -126,6 +126,11 @@
 // declared in wiring.h
 extern "C" unsigned long millis(void);
 
+// Arduino Due does not have PROGMEM
+#if defined(__arm__) && !defined(PROGMEM)
+#define PROGMEM
+#endif
+
 // declare a static string
 #define P(name)   static const unsigned char name[] PROGMEM
 
@@ -405,6 +410,9 @@ size_t WebServer::write(const char *buffer, size_t length)
 
 void WebServer::writeP(const unsigned char *data, size_t length)
 {
+#if defined(__arm__)
+  m_client.write((const uint8_t *)data, length);
+#else
   // copy data out of program memory into local storage, write out in
   // chunks of 32 bytes to avoid extra short TCP/IP packets
   uint8_t buffer[32];
@@ -423,10 +431,14 @@ void WebServer::writeP(const unsigned char *data, size_t length)
 
   if (bufferEnd > 0)
     m_client.write(buffer, bufferEnd);
+#endif
 }
 
 void WebServer::printP(const unsigned char *str)
 {
+#if defined(__arm__)
+  m_client.write((const char *)str);
+#else
   // copy data out of program memory into local storage, write out in
   // chunks of 32 bytes to avoid extra short TCP/IP packets
   uint8_t buffer[32];
@@ -444,6 +456,7 @@ void WebServer::printP(const unsigned char *str)
   // write out everything left but trailing NUL
   if (bufferEnd > 1)
     m_client.write(buffer, bufferEnd - 1);
+#endif
 }
 
 void WebServer::printCRLF()

@@ -412,7 +412,7 @@ size_t WebServer::write(const char *buffer, size_t length)
 
 void WebServer::writeP(const unsigned char *data, size_t length)
 {
-#if defined(__arm__)
+#ifdef _VARIANT_ARDUINO_DUE_X_
   m_client.write((const uint8_t *)data, length);
 #else
   // copy data out of program memory into local storage, write out in
@@ -438,7 +438,7 @@ void WebServer::writeP(const unsigned char *data, size_t length)
 
 void WebServer::printP(const unsigned char *str)
 {
-#if defined(__arm__)
+#ifdef _VARIANT_ARDUINO_DUE_X_
   m_client.write((const char *)str);
 #else
   // copy data out of program memory into local storage, write out in

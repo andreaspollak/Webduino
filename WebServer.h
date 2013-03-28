@@ -126,11 +126,6 @@
 // declared in wiring.h
 extern "C" unsigned long millis(void);
 
-// Arduino Due does not have PROGMEM
-#if defined(__arm__) && !defined(PROGMEM)
-#define PROGMEM
-#endif
-
 // declare a static string
 #ifdef __AVR__
 #define P(name)   static const unsigned char name[] PROGMEM

@@ -125,17 +125,19 @@
 // declared in wiring.h
 extern "C" unsigned long millis(void);
 
-// Arduino Due does not have PROGMEM
-#if defined(__arm__) && !defined(PROGMEM)
-#define PROGMEM
-#endif
-
 // declare a static string
+#ifdef __AVR__
 #define P(name)   static const unsigned char name[] PROGMEM
+#else
+#define P(name)   static const unsigned char name[]
+#endif
 
 // returns the number of elements in the array
 #define SIZE(array) (sizeof(array) / sizeof(*array))
 
+#ifdef _VARIANT_ARDUINO_DUE_X_
+#define pgm_read_byte(ptr) (unsigned char)(* ptr)
+#endif
 /********************************************************************
  * DECLARATIONS
  ********************************************************************/
@@ -407,7 +409,7 @@ size_t WebServer::write(const char *buffer, size_t length)
 
 void WebServer::writeP(const unsigned char *data, size_t length)
 {
-#if defined(__arm__)
+#ifdef _VARIANT_ARDUINO_DUE_X_
   m_server.available().write((const uint8_t *)data, length);
 #else
   // copy data out of program memory into local storage, write out in
@@ -434,7 +436,7 @@ void WebServer::writeP(const unsigned char *data, size_t length)
 
 void WebServer::printP(const unsigned char *str)
 {
-#if defined(__arm__)
+#ifdef _VARIANT_ARDUINO_DUE_X_
   m_server.available().write((const char *)str);
 #else
   // copy data out of program memory into local storage, write out in

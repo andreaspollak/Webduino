@@ -1,20 +1,10 @@
 /* Web_HelloWorld.pde - very simple Webduino example */
 
-#include "SPI.h"
-#include "Ethernet.h"
+#include <SPI.h>
+#include <WiFly.h>
 #include "WebServer.h"
+#include "Credentials.h"
 
-/* CHANGE THIS TO YOUR OWN UNIQUE VALUE.  The MAC number should be
- * different from any other devices on your network or you'll have
- * problems receiving packets. */
-static uint8_t mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED };
-
-
-/* CHANGE THIS TO MATCH YOUR HOST NETWORK.  Most home networks are in
- * the 192.168.0.XXX or 192.168.1.XXX subrange.  Pick an address
- * that's not in use and isn't going to be automatically allocated by
- * DHCP from your router. */
-static uint8_t ip[] = { 192, 168, 1, 210 };
 
 /* This creates an instance of the webserver.  By specifying a prefix
  * of "", all pages will be at the root of the server. */
@@ -37,7 +27,7 @@ void helloCmd(WebServer &server, WebServer::ConnectionType type, char *, bool)
     /* this defines some HTML text in read-only memory aka PROGMEM.
      * This is needed to avoid having the string copied to our limited
      * amount of RAM. */
-    P(helloMsg) = "<h1>Hello, World!</h1>";
+    P(helloMsg) = "<h1>Hello, world!</h1>";
 
     /* this is a special form of print that outputs from PROGMEM */
     server.printP(helloMsg);
@@ -46,8 +36,24 @@ void helloCmd(WebServer &server, WebServer::ConnectionType type, char *, bool)
 
 void setup()
 {
-  /* initialize the Ethernet adapter */
-  Ethernet.begin(mac, ip);
+  Serial.begin(9600);
+  while (!Serial) { /* wait for init */ }
+  Serial.println("Serial initialized.");
+
+  /* initialize the WiFly adapter and join network */
+  Serial.println("Initializing WiFly...");
+  WiFly.begin();
+  if (!WiFly.join(ssid, passphrase)) {
+    Serial.print("ERR: WiFly failed to join network '");
+    Serial.print(ssid);
+    Serial.println("'; *HALT*");
+    while (1) { /* hang */ }
+  }
+  Serial.println("WiFly initialized.");
+
+  /* report ip address */
+  Serial.print("IP address: ");
+  Serial.println(WiFly.ip());  // TODO: This is printing garbage at the moment...
 
   /* setup our default command that will be run when the user accesses
    * the root page on the server */

@@ -28,8 +28,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#include <EthernetClient.h>
-#include <EthernetServer.h>
+#include <WiFly.h>
 
 /********************************************************************
  * CONFIGURATION
@@ -301,8 +300,7 @@ public:
   uint8_t available();
 
 private:
-  EthernetServer m_server;
-  EthernetClient m_client;
+  WiFlyServer m_server;
   const char *m_urlPrefix;
 
   unsigned char m_pushback[32];
@@ -348,7 +346,6 @@ private:
 
 WebServer::WebServer(const char *urlPrefix, int port) :
   m_server(port),
-  m_client(255),
   m_urlPrefix(urlPrefix),
   m_pushbackDepth(0),
   m_cmdCount(0),
@@ -390,28 +387,28 @@ void WebServer::setUrlPathCommand(UrlPathCommand *cmd)
 
 size_t WebServer::write(uint8_t ch)
 {
-  return m_client.write(ch);
+  return m_server.available().write(ch);
 }
 
 size_t WebServer::write(const char *str)
 {
-  return m_client.write(str);
+  return m_server.available().write(str);
 }
 
 size_t WebServer::write(const uint8_t *buffer, size_t size)
 {
-  return m_client.write(buffer, size);
+  return m_server.available().write(buffer, size);
 }
 
 size_t WebServer::write(const char *buffer, size_t length)
 {
-  return m_client.write((const uint8_t *)buffer, length);
+  return m_server.available().write((const uint8_t *)buffer, length);
 }
 
 void WebServer::writeP(const unsigned char *data, size_t length)
 {
 #if defined(__arm__)
-  m_client.write((const uint8_t *)data, length);
+  m_server.available().write((const uint8_t *)data, length);
 #else
   // copy data out of program memory into local storage, write out in
   // chunks of 32 bytes to avoid extra short TCP/IP packets
@@ -422,22 +419,23 @@ void WebServer::writeP(const unsigned char *data, size_t length)
   {
     if (bufferEnd == 32)
     {
-      m_client.write(buffer, 32);
+      m_server.available().write(buffer, 32);
       bufferEnd = 0;
     }
 
     buffer[bufferEnd++] = pgm_read_byte(data++);
   }
 
-  if (bufferEnd > 0)
-    m_client.write(buffer, bufferEnd);
+  if (bufferEnd > 0) {
+    m_server.available().write(buffer, bufferEnd);
+  }
 #endif
 }
 
 void WebServer::printP(const unsigned char *str)
 {
 #if defined(__arm__)
-  m_client.write((const char *)str);
+  m_server.available().write((const char *)str);
 #else
   // copy data out of program memory into local storage, write out in
   // chunks of 32 bytes to avoid extra short TCP/IP packets
@@ -448,20 +446,21 @@ void WebServer::printP(const unsigned char *str)
   {
     if (bufferEnd == 32)
     {
-      m_client.write(buffer, 32);
+      m_server.available().write(buffer, 32);
       bufferEnd = 0;
     }
   }
 
   // write out everything left but trailing NUL
-  if (bufferEnd > 1)
-    m_client.write(buffer, bufferEnd - 1);
+  if (bufferEnd > 1) {
+    m_server.available().write(buffer, bufferEnd - 1);
+  }
 #endif
 }
 
 void WebServer::printCRLF()
 {
-  m_client.write((const uint8_t *)"\r\n", 2);
+  m_server.available().write((const uint8_t *)"\r\n", 2);
 }
 
 bool WebServer::dispatchCommand(ConnectionType requestType, char *verb,
@@ -557,9 +556,7 @@ void WebServer::processConnection(char *buff, int *bufflen)
 {
   int urlPrefixLen = strlen(m_urlPrefix);
 
-  m_client = m_server.available();
-
-  if (m_client) {
+  if (m_server.available()) {
     m_readingContent = false;
     buff[0] = 0;
     ConnectionType requestType = INVALID;
@@ -732,14 +729,16 @@ void WebServer::httpSeeOther(const char *otherURL)
 
 int WebServer::read()
 {
-  if (m_client == NULL)
+  WiFlyClient& client = m_server.available();
+
+  if (!client)
     return -1;
 
   if (m_pushbackDepth == 0)
   {
     unsigned long timeoutTime = millis() + WEBDUINO_READ_TIMEOUT_IN_MS;
 
-    while (m_client.connected())
+    while (client.connected())
     {
       // stop reading the socket early if we get to content-length
       // characters in the POST.  This is because some clients leave
@@ -755,7 +754,7 @@ int WebServer::read()
         }
       }
 
-      int ch = m_client.read();
+      int ch = client.read();
 
       // if we get a character, return it, otherwise continue in while
       // loop, checking connection status
@@ -817,8 +816,10 @@ void WebServer::push(int ch)
 void WebServer::reset()
 {
   m_pushbackDepth = 0;
-  m_client.flush();
-  m_client.stop();
+
+  WiFlyClient& client = m_server.available();
+  client.flush();
+  client.stop();
 }
 
 bool WebServer::expect(const char *str)

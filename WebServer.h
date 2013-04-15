@@ -394,7 +394,11 @@ size_t WebServer::write(uint8_t ch)
 
 size_t WebServer::write(const char *str)
 {
-  return m_server.available().write(str);
+  size_t n = 0;
+  while (*str) {
+    n += write(uint8_t(*str++));
+  }
+  return n;
 }
 
 size_t WebServer::write(const uint8_t *buffer, size_t size)
@@ -437,7 +441,7 @@ void WebServer::writeP(const unsigned char *data, size_t length)
 void WebServer::printP(const unsigned char *str)
 {
 #ifdef _VARIANT_ARDUINO_DUE_X_
-  m_server.available().write((const char *)str);
+  write((const char*) str);
 #else
   // copy data out of program memory into local storage, write out in
   // chunks of 32 bytes to avoid extra short TCP/IP packets
